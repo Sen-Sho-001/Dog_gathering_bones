@@ -6,7 +6,7 @@
 <title>🐕 骨あつめ犬ゲーム</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #f0ede6; display: flex; justify-content: center; min-height: 100vh; padding: 20px 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+body { background: #f0ede6; display: flex; justify-content: center; min-height: 100vh; padding: 20px 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
 #game-wrap { width: 100%; max-width: 500px; user-select: none; }
 h1 { font-size: 17px; font-weight: 500; text-align: center; margin-bottom: 10px; color: #2c2c2a; }
 
@@ -112,6 +112,16 @@ h1 { font-size: 17px; font-weight: 500; text-align: center; margin-bottom: 10px;
 .dpad-btn { width:52px;height:52px;background:#fff;border:0.5px solid #bbb;border-radius:10px;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#2c2c2a;touch-action:none; }
 .dpad-btn:active { background:#e8e4dc; transform:scale(0.93); }
 .dpad-empty { width:52px;height:52px; }
+
+/* Joystick */
+#joystick-wrap { display:flex; align-items:center; justify-content:center; margin:0 auto 4px; width:fit-content; }
+#joystick-base { width:130px; height:130px; border-radius:50%; background:#e8e6e0; border:0.5px solid #ccc; position:relative; touch-action:none; cursor:pointer; }
+#joystick-stick { width:52px; height:52px; border-radius:50%; background:#fff; border:0.5px solid #bbb; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; display:flex; align-items:center; justify-content:center; font-size:22px; box-shadow:0 2px 6px rgba(0,0,0,0.12); transition:box-shadow 0.1s; }
+#joystick-base:active #joystick-stick { box-shadow:0 1px 3px rgba(0,0,0,0.15); }
+
+#controls-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+#skills-left  { display:flex; flex-direction:column; gap:6px; flex:1; align-items:flex-start; }
+#skills-right { display:flex; flex-direction:column; gap:6px; flex:1; align-items:flex-end; }
 </style>
 </head>
 <body>
@@ -154,26 +164,31 @@ h1 { font-size: 17px; font-weight: 500; text-align: center; margin-bottom: 10px;
       <button id="rebirth-btn">✨ リボーン！</button>
     </div>
   </div>
-  <div id="msg">矢印キー or 十字キーで移動！アイテムを集めて敵を倒せ！</div>
-  <div id="skills-bar">
-    <div class="skill-btn locked" id="skill-0"><span class="skill-icon">🦷</span><div class="skill-name">噛みつき</div><div class="skill-hint">Z</div><div class="skill-cd" id="cd-0">Lv3</div></div>
-    <div class="skill-btn locked" id="skill-1"><span class="skill-icon">💨</span><div class="skill-name">突進</div><div class="skill-hint">X</div><div class="skill-cd" id="cd-1">Lv6</div></div>
-    <div class="skill-btn locked" id="skill-2"><span class="skill-icon">😤</span><div class="skill-name">威嚇</div><div class="skill-hint">C</div><div class="skill-cd" id="cd-2">Lv9</div></div>
-    <div class="skill-btn locked rebirth-skill" id="skill-3" style="display:none"><span class="skill-icon">⚡</span><div class="skill-name">雷撃</div><div class="skill-hint">V</div><div class="skill-cd" id="cd-3"></div></div>
-    <div class="skill-btn locked rebirth-skill" id="skill-4" style="display:none"><span class="skill-icon">🛡️</span><div class="skill-name">バリア</div><div class="skill-hint">B</div><div class="skill-cd" id="cd-4"></div></div>
-    <div class="skill-btn locked rebirth-skill" id="skill-5" style="display:none"><span class="skill-icon">🌊</span><div class="skill-name">超音波</div><div class="skill-hint">N</div><div class="skill-cd" id="cd-5"></div></div>
-    <div class="skill-btn locked rebirth-skill" id="skill-6" style="display:none"><span class="skill-icon">🌀</span><div class="skill-name">爪斬撃</div><div class="skill-hint">M</div><div class="skill-cd" id="cd-6"></div></div>
-  </div>
-  <div id="dpad">
-    <div class="dpad-empty"></div>
-    <div class="dpad-btn" id="btn-up">▲</div>
-    <div class="dpad-empty"></div>
-    <div class="dpad-btn" id="btn-left">◀</div>
-    <div class="dpad-empty"></div>
-    <div class="dpad-btn" id="btn-right">▶</div>
-    <div class="dpad-empty"></div>
-    <div class="dpad-btn" id="btn-down">▼</div>
-    <div class="dpad-empty"></div>
+  <div id="msg">画面の丸いパッドで移動！アイテムを集めて敵を倒せ！</div>
+
+  <!-- Skills + Joystick row -->
+  <div id="controls-row">
+    <!-- Left skills: 0,2,4,6 -->
+    <div id="skills-left">
+      <div class="skill-btn locked" id="skill-0"><span class="skill-icon">🦷</span><div class="skill-name">噛みつき</div><div class="skill-hint">タップ / Z</div><div class="skill-cd" id="cd-0">Lv3</div></div>
+      <div class="skill-btn locked" id="skill-2"><span class="skill-icon">😤</span><div class="skill-name">威嚇</div><div class="skill-hint">タップ / C</div><div class="skill-cd" id="cd-2">Lv9</div></div>
+      <div class="skill-btn locked rebirth-skill" id="skill-4" style="display:none"><span class="skill-icon">🛡️</span><div class="skill-name">バリア</div><div class="skill-hint">タップ / B</div><div class="skill-cd" id="cd-4"></div></div>
+      <div class="skill-btn locked rebirth-skill" id="skill-6" style="display:none"><span class="skill-icon">🌀</span><div class="skill-name">爪斬撃</div><div class="skill-hint">タップ / M</div><div class="skill-cd" id="cd-6"></div></div>
+    </div>
+
+    <!-- Joystick center -->
+    <div id="joystick-wrap">
+      <div id="joystick-base">
+        <div id="joystick-stick">🐾</div>
+      </div>
+    </div>
+
+    <!-- Right skills: 1,3,5 -->
+    <div id="skills-right">
+      <div class="skill-btn locked" id="skill-1"><span class="skill-icon">💨</span><div class="skill-name">突進</div><div class="skill-hint">タップ / X</div><div class="skill-cd" id="cd-1">Lv6</div></div>
+      <div class="skill-btn locked rebirth-skill" id="skill-3" style="display:none"><span class="skill-icon">⚡</span><div class="skill-name">雷撃</div><div class="skill-hint">タップ / V</div><div class="skill-cd" id="cd-3"></div></div>
+      <div class="skill-btn locked rebirth-skill" id="skill-5" style="display:none"><span class="skill-icon">🌊</span><div class="skill-name">超音波</div><div class="skill-hint">タップ / N</div><div class="skill-cd" id="cd-5"></div></div>
+    </div>
   </div>
 </div>
 
@@ -824,8 +839,72 @@ document.addEventListener('keyup',e=>{
   if(e.key==='ArrowUp')keys.up=false;if(e.key==='ArrowDown')keys.down=false;
   if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;
 });
-function dpadBind(id,key){const btn=document.getElementById(id);btn.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;});btn.addEventListener('pointerup',()=>keys[key]=false);btn.addEventListener('pointerleave',()=>keys[key]=false);btn.addEventListener('pointercancel',()=>keys[key]=false);}
-dpadBind('btn-up','up');dpadBind('btn-down','down');dpadBind('btn-left','left');dpadBind('btn-right','right');
+// ── Joystick ───────────────────────────────────────────────
+(function(){
+  const base=document.getElementById('joystick-base');
+  const stick=document.getElementById('joystick-stick');
+  if(!base)return;
+  const R=base.offsetWidth/2||65; // base radius
+  const DEAD=12; // dead zone px
+  let active=false,pid=null,bRect;
+
+  function setKeys(dx,dy){
+    const adx=Math.abs(dx),ady=Math.abs(dy);
+    keys.left =dx<-DEAD;
+    keys.right=dx>DEAD;
+    keys.up   =dy<-DEAD;
+    keys.down =dy>DEAD;
+  }
+  function moveStick(cx,cy){
+    bRect=base.getBoundingClientRect();
+    const ox=cx-(bRect.left+bRect.width/2);
+    const oy=cy-(bRect.top+bRect.height/2);
+    const dist=Math.hypot(ox,oy);
+    const maxR=R-28;
+    const clamp=Math.min(dist,maxR);
+    const angle=Math.atan2(oy,ox);
+    const sx=Math.cos(angle)*clamp;
+    const sy=Math.sin(angle)*clamp;
+    stick.style.transform=`translate(calc(-50% + ${sx}px), calc(-50% + ${sy}px))`;
+    setKeys(ox,oy);
+  }
+  function resetStick(){
+    stick.style.transform='translate(-50%,-50%)';
+    keys.up=keys.down=keys.left=keys.right=false;
+    active=false;pid=null;
+  }
+
+  base.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(pid!==null)return;
+    const t=e.changedTouches[0];
+    pid=t.identifier;active=true;
+    moveStick(t.clientX,t.clientY);
+  },{passive:false});
+
+  base.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier===pid){moveStick(t.clientX,t.clientY);break;}
+    }
+  },{passive:false});
+
+  base.addEventListener('touchend',e=>{
+    for(const t of e.changedTouches){if(t.identifier===pid){resetStick();break;}}
+  });
+  base.addEventListener('touchcancel',e=>{
+    for(const t of e.changedTouches){if(t.identifier===pid){resetStick();break;}}
+  });
+
+  // Mouse fallback for PC
+  base.addEventListener('mousedown',e=>{
+    e.preventDefault();active=true;moveStick(e.clientX,e.clientY);
+    const mm=ev=>{if(active)moveStick(ev.clientX,ev.clientY);};
+    const mu=()=>{resetStick();document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+    document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+  });
+})();
+
 for(let i=0;i<7;i++){const btn=document.getElementById('skill-'+i);if(btn)btn.addEventListener('pointerdown',e=>{e.preventDefault();useSkill(i);});}
 document.getElementById('reset-btn').addEventListener('click',doReset);
 document.getElementById('rebirth-btn').addEventListener('click',doRebirth);
