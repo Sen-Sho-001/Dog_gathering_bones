@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐕 骨あつめ犬ゲーム</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f0ede6; display: flex; justify-content: center; min-height: 100vh; padding: 20px 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+#game-wrap { width: 100%; max-width: 500px; user-select: none; }
+h1 { font-size: 17px; font-weight: 500; text-align: center; margin-bottom: 10px; color: #2c2c2a; }
+
+#rebirth-badge { text-align: center; font-size: 11px; font-weight: 500; margin-bottom: 8px; min-height: 18px; color: #8855cc; }
+
+#top-bar { display: flex; align-items: stretch; gap: 8px; margin-bottom: 8px; }
+#stats { display: flex; gap: 6px; flex: 1; }
+.stat-card { background: #fff; border-radius: 10px; border: 0.5px solid #ddd; padding: 6px 8px; flex: 1; text-align: center; }
+.stat-label { font-size: 10px; color: #999; margin-bottom: 1px; }
+.stat-value { font-size: 18px; font-weight: 500; color: #2c2c2a; }
+#reset-btn { background: #fff; border: 0.5px solid #bbb; border-radius: 10px; padding: 0 12px; font-size: 12px; font-weight: 500; color: #555; cursor: pointer; white-space: nowrap; }
+#reset-btn:hover { background: #f0ede6; }
+#reset-btn:active { transform: scale(0.96); }
+
+#xp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#xp-label { font-size: 11px; color: #999; white-space: nowrap; min-width: 72px; }
+#xp-bar-wrap { flex: 1; background: #e0ddd6; border-radius: 99px; height: 9px; overflow: hidden; }
+#xp-bar { height: 100%; background: #1D9E75; border-radius: 99px; transition: width 0.3s; width: 0%; }
+
+/* Boss HP bar */
+#boss-row { display: none; align-items: center; gap: 8px; margin-bottom: 6px; }
+#boss-label { font-size: 11px; color: #cc3322; font-weight: 500; white-space: nowrap; }
+#boss-bar-wrap { flex: 1; background: #e0ddd6; border-radius: 99px; height: 9px; overflow: hidden; }
+#boss-bar { height: 100%; background: linear-gradient(90deg,#cc3322,#ff6644); border-radius: 99px; transition: width 0.2s; width: 100%; }
+
+#dog-info { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+#dog-name-badge { font-size: 12px; font-weight: 500; color: #1D9E75; background: #e1f5ee; border-radius: 8px; padding: 3px 10px; }
+#stage-badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 8px; background: #e1f5ee; color: #1D9E75; }
+
+#arena { position: relative; width: 100%; height: 280px; border-radius: 14px; overflow: hidden; border: 0.5px solid #ccc; margin-bottom: 8px; }
+
+#arena.stage-forest {
+  background: radial-gradient(ellipse 55px 75px at 5% 100%,#2a5418 0%,transparent 100%),radial-gradient(ellipse 45px 65px at 16% 100%,#3a7020 0%,transparent 100%),radial-gradient(ellipse 65px 85px at 90% 100%,#1e4810 0%,transparent 100%),radial-gradient(ellipse 50px 70px at 78% 100%,#2d5e1e 0%,transparent 100%),radial-gradient(ellipse 38px 55px at 50% 100%,#3a7020 0%,transparent 100%),linear-gradient(180deg,#b8e4b0 0%,#82c876 35%,#5aaa4e 65%,#3a8830 100%);
+}
+#arena.stage-savanna {
+  background: radial-gradient(ellipse 28px 55px at 10% 88%,#8a6510 0%,transparent 100%),radial-gradient(ellipse 22px 48px at 86% 82%,#7a5808 0%,transparent 100%),radial-gradient(ellipse 18px 38px at 52% 92%,#986e18 0%,transparent 100%),linear-gradient(180deg,#f5ca40 0%,#e8a418 22%,#d48a20 52%,#c07018 75%,#a85e10 100%);
+}
+#arena.stage-arctic {
+  background: radial-gradient(ellipse 90px 30px at 20% 90%,#c8e8f8 0%,transparent 100%),radial-gradient(ellipse 70px 25px at 70% 92%,#d8f0ff 0%,transparent 100%),radial-gradient(ellipse 50px 20px at 45% 88%,#b8dcf0 0%,transparent 100%),linear-gradient(180deg,#c0e8ff 0%,#a8d8f8 20%,#90c8f0 45%,#c8e8ff 70%,#e0f4ff 100%);
+}
+#arena.stage-space {
+  background: radial-gradient(circle at 20% 30%,#4a0080 0%,transparent 50%),radial-gradient(circle at 80% 70%,#000840 0%,transparent 50%),linear-gradient(180deg,#000010 0%,#050025 40%,#0a0040 100%);
+}
+#arena.stage-space::before {
+  content:''; position:absolute; inset:0;
+  background-image: radial-gradient(1px 1px at 10% 15%,#fff 100%,transparent),radial-gradient(1px 1px at 25% 45%,#fff 100%,transparent),radial-gradient(1px 1px at 40% 20%,#aaf 100%,transparent),radial-gradient(1px 1px at 55% 60%,#fff 100%,transparent),radial-gradient(1px 1px at 70% 10%,#fff 100%,transparent),radial-gradient(1px 1px at 80% 35%,#ffa 100%,transparent),radial-gradient(1px 1px at 92% 55%,#fff 100%,transparent),radial-gradient(1.5px 1.5px at 15% 70%,#aaf 100%,transparent),radial-gradient(1px 1px at 35% 80%,#fff 100%,transparent),radial-gradient(1px 1px at 60% 85%,#fff 100%,transparent),radial-gradient(2px 2px at 50% 5%,#fff 100%,transparent),radial-gradient(1px 1px at 88% 80%,#ffa 100%,transparent);
+  pointer-events:none;
+}
+
+#arena.bonus { animation: bonusPulse 0.7s infinite alternate; }
+@keyframes bonusPulse { from{box-shadow:0 0 0 3px #f5ca40;} to{box-shadow:0 0 0 7px #e8a020;} }
+#arena.boss-fight { animation: bossPulse 1s infinite alternate; }
+@keyframes bossPulse { from{box-shadow:0 0 0 3px #cc3322;} to{box-shadow:0 0 0 8px #ff6600;} }
+
+.deco { position: absolute; pointer-events: none; font-size: 22px; line-height: 1; }
+.snowflake { position: absolute; pointer-events: none; color: #fff; animation: snowfall linear infinite; opacity: 0.8; }
+@keyframes snowfall { 0%{transform:translateY(-20px) rotate(0deg);opacity:0.8;} 100%{transform:translateY(300px) rotate(360deg);opacity:0;} }
+.star-particle { position: absolute; pointer-events: none; color: #aaf; font-size: 10px; animation: starFloat linear infinite; }
+@keyframes starFloat { 0%{transform:translateY(0) rotate(0deg);opacity:0.9;} 100%{transform:translateY(300px) rotate(180deg);opacity:0;} }
+
+#dog-canvas { position: absolute; pointer-events: none; }
+.enemy-el { position: absolute; pointer-events: none; line-height: 1; }
+.item-el  { position: absolute; pointer-events: none; line-height: 1; font-size: 26px; }
+.item-el.spawning { animation: itemAppear 0.35s ease-out; }
+@keyframes itemAppear { 0%{opacity:0;transform:scale(0.2) rotate(-20deg);} 60%{transform:scale(1.25) rotate(5deg);} 100%{opacity:1;transform:scale(1) rotate(0deg);} }
+.drop-el { position: absolute; pointer-events: none; line-height: 1; font-size: 24px; animation: dropBob 0.7s infinite alternate; }
+@keyframes dropBob { from{transform:translateY(0) scale(1);} to{transform:translateY(-5px) scale(1.1);} }
+.hit-fx { position: absolute; pointer-events: none; font-size: 22px; animation: popfade 0.55s forwards; }
+@keyframes popfade { 0%{opacity:1;transform:scale(1.3) translateY(0);} 100%{opacity:0;transform:scale(0.7) translateY(-22px);} }
+#skill-overlay { position: absolute; inset:0; pointer-events:none; border-radius:14px; opacity:0; transition:opacity 0.15s; }
+
+#bonus-bar-wrap { position: absolute; top: 6px; left: 8px; right: 8px; height: 7px; border-radius: 99px; background: rgba(0,0,0,0.15); display: none; z-index: 10; }
+#bonus-bar { height: 100%; border-radius: 99px; background: linear-gradient(90deg,#f5ca40,#ff8c00); width: 100%; }
+#bonus-label { position: absolute; top: 15px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 500; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.5); pointer-events: none; display: none; z-index: 10; }
+
+/* Clear / Rebirth overlay */
+#clear-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; background:rgba(10,0,40,0.92); border-radius:14px; opacity:0; pointer-events:none; transition:opacity 0.5s; z-index:20; }
+#clear-overlay.visible { opacity:1; pointer-events:all; }
+#clear-title { font-size:28px; color:#ffd700; font-weight:700; }
+#clear-sub { font-size:13px; color:#aac8ff; text-align:center; line-height:1.6; }
+#rebirth-btn { background:#ffd700; border:none; border-radius:10px; padding:10px 28px; font-size:15px; font-weight:700; color:#1a0050; cursor:pointer; margin-top:6px; }
+#rebirth-btn:active { transform:scale(0.96); }
+
+#stage-transition { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:24px; color:#333; font-weight:500; gap:6px; opacity:0; pointer-events:none; border-radius:14px; transition:opacity 0.45s; background:rgba(255,255,255,0.92); }
+#stage-transition.visible { opacity:1; pointer-events:all; }
+#stage-transition-sub { font-size:13px; color:#888; font-weight:400; }
+
+#msg { text-align:center; font-size:12px; color:#888; min-height:16px; margin-bottom:8px; }
+
+#skills-bar { display:flex; gap:6px; justify-content:center; margin-bottom:10px; flex-wrap:wrap; }
+.skill-btn { background:#fff; border:0.5px solid #bbb; border-radius:10px; padding:6px 6px; cursor:pointer; text-align:center; flex:1; min-width:70px; max-width:120px; transition:opacity 0.2s; }
+.skill-btn:active { transform:scale(0.95); }
+.skill-btn.locked { opacity:0.3; cursor:default; }
+.skill-btn.cooling { opacity:0.5; cursor:default; }
+.skill-icon { font-size:20px; display:block; line-height:1.3; }
+.skill-name { font-size:10px; font-weight:500; color:#333; margin-top:1px; }
+.skill-hint { font-size:9px; color:#aaa; }
+.skill-cd   { font-size:10px; font-weight:500; color:#e24b4a; min-height:13px; }
+.skill-btn.rebirth-skill { border-color:#8855cc; background:#f8f0ff; }
+.skill-btn.rebirth-skill .skill-name { color:#8855cc; }
+
+#dpad { display:grid; grid-template-columns:repeat(3,52px); grid-template-rows:repeat(3,52px); gap:4px; margin:0 auto; width:fit-content; }
+.dpad-btn { width:52px;height:52px;background:#fff;border:0.5px solid #bbb;border-radius:10px;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#2c2c2a;touch-action:none; }
+.dpad-btn:active { background:#e8e4dc; transform:scale(0.93); }
+.dpad-empty { width:52px;height:52px; }
+
+/* Joystick */
+#joystick-base { width:140px; height:140px; border-radius:50%; background:#e0ddd6; border:0.5px solid #c0bdb6; position:relative; touch-action:none; cursor:pointer; }
+#joystick-stick { width:56px; height:56px; border-radius:50%; background:#fff; border:0.5px solid #bbb; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 2px 8px rgba(0,0,0,0.14); }
+
+/* PC layout: skills bar on top, dpad centered below */
+#pc-controls { display:block; }
+#pc-skills-bar { display:flex; gap:6px; justify-content:center; margin-bottom:10px; flex-wrap:wrap; }
+#dpad { display:grid; grid-template-columns:repeat(3,52px); grid-template-rows:repeat(3,52px); gap:4px; margin:0 auto 8px; width:fit-content; }
+.dpad-btn { width:52px;height:52px;background:#fff;border:0.5px solid #bbb;border-radius:10px;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#2c2c2a;touch-action:none; }
+.dpad-btn:active { background:#e8e4dc; transform:scale(0.93); }
+.dpad-empty { width:52px;height:52px; }
+
+/* Touch layout: joystick left, skills grid right */
+#touch-controls { display:none; }
+#touch-row { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding: 4px 0 8px; }
+#joystick-wrap { flex-shrink:0; }
+#touch-skills { display:grid; grid-template-columns:repeat(2, 1fr); gap:6px; flex:1; }
+#touch-skills .skill-btn { max-width:none; min-width:0; }
+
+/* show correct UI per device */
+body.is-touch #pc-controls { display:none; }
+body.is-touch #touch-controls { display:block; }
+</style>
+</head>
+<body>
+<div id="game-wrap">
+  <h1>🐕 骨あつめ犬ゲーム</h1>
+  <div id="rebirth-badge"></div>
+  <div id="top-bar">
+    <div id="stats">
+      <div class="stat-card"><div class="stat-label">Lv</div><div class="stat-value" id="s-level">1</div></div>
+      <div class="stat-card"><div class="stat-label">アイテム</div><div class="stat-value" id="s-bones">0</div></div>
+      <div class="stat-card"><div class="stat-label">HP</div><div class="stat-value" id="s-hp">5</div></div>
+      <div class="stat-card"><div class="stat-label">スコア</div><div class="stat-value" id="s-score">0</div></div>
+    </div>
+    <button id="reset-btn">🔄 リセット</button>
+  </div>
+  <div id="xp-row">
+    <div id="xp-label">子犬</div>
+    <div id="xp-bar-wrap"><div id="xp-bar"></div></div>
+  </div>
+  <div id="boss-row">
+    <div id="boss-label">🐉 ドラゴン</div>
+    <div id="boss-bar-wrap"><div id="boss-bar"></div></div>
+  </div>
+  <div id="dog-info">
+    <div id="dog-name-badge">🐕 柴犬</div>
+    <div id="stage-badge">🌲 森ステージ</div>
+  </div>
+  <div id="arena" class="stage-forest">
+    <canvas id="dog-canvas" width="64" height="56"></canvas>
+    <div id="skill-overlay"></div>
+    <div id="bonus-bar-wrap"><div id="bonus-bar"></div></div>
+    <div id="bonus-label">🎉 ボーナスタイム！</div>
+    <div id="stage-transition">
+      <div id="stage-transition-text"></div>
+      <div id="stage-transition-sub"></div>
+    </div>
+    <div id="clear-overlay">
+      <div id="clear-title">🏆 ドラゴン撃破！</div>
+      <div id="clear-sub"></div>
+      <button id="rebirth-btn">✨ リボーン！</button>
+    </div>
+  </div>
+  <div id="msg">矢印キー or パッドで移動！アイテムを集めて敵を倒せ！</div>
+
+  <!-- PC layout -->
+  <div id="pc-controls">
+    <div id="pc-skills-bar">
+      <div class="skill-btn locked" id="skill-0"><span class="skill-icon">🦷</span><div class="skill-name">噛みつき</div><div class="skill-hint">Z</div><div class="skill-cd" id="cd-0">Lv3</div></div>
+      <div class="skill-btn locked" id="skill-1"><span class="skill-icon">💨</span><div class="skill-name">突進</div><div class="skill-hint">X</div><div class="skill-cd" id="cd-1">Lv6</div></div>
+      <div class="skill-btn locked" id="skill-2"><span class="skill-icon">😤</span><div class="skill-name">威嚇</div><div class="skill-hint">C</div><div class="skill-cd" id="cd-2">Lv9</div></div>
+      <div class="skill-btn locked rebirth-skill" id="skill-3" style="display:none"><span class="skill-icon">⚡</span><div class="skill-name">雷撃</div><div class="skill-hint">V</div><div class="skill-cd" id="cd-3"></div></div>
+      <div class="skill-btn locked rebirth-skill" id="skill-4" style="display:none"><span class="skill-icon">🛡️</span><div class="skill-name">バリア</div><div class="skill-hint">B</div><div class="skill-cd" id="cd-4"></div></div>
+      <div class="skill-btn locked rebirth-skill" id="skill-5" style="display:none"><span class="skill-icon">🌊</span><div class="skill-name">超音波</div><div class="skill-hint">N</div><div class="skill-cd" id="cd-5"></div></div>
+      <div class="skill-btn locked rebirth-skill" id="skill-6" style="display:none"><span class="skill-icon">🌀</span><div class="skill-name">爪斬撃</div><div class="skill-hint">M</div><div class="skill-cd" id="cd-6"></div></div>
+    </div>
+    <div id="dpad">
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-up">▲</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-left">◀</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-right">▶</div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-down">▼</div>
+      <div class="dpad-empty"></div>
+    </div>
+  </div>
+
+  <!-- Touch layout: joystick bottom-left, skills bottom-right -->
+  <div id="touch-controls">
+    <div id="touch-row">
+      <div id="joystick-wrap">
+        <div id="joystick-base">
+          <div id="joystick-stick">🐾</div>
+        </div>
+      </div>
+      <div id="touch-skills">
+        <div class="skill-btn locked" id="t-skill-0"><span class="skill-icon">🦷</span><div class="skill-name">噛みつき</div><div class="skill-cd" id="t-cd-0">Lv3</div></div>
+        <div class="skill-btn locked" id="t-skill-1"><span class="skill-icon">💨</span><div class="skill-name">突進</div><div class="skill-cd" id="t-cd-1">Lv6</div></div>
+        <div class="skill-btn locked" id="t-skill-2"><span class="skill-icon">😤</span><div class="skill-name">威嚇</div><div class="skill-cd" id="t-cd-2">Lv9</div></div>
+        <div class="skill-btn locked rebirth-skill" id="t-skill-3" style="display:none"><span class="skill-icon">⚡</span><div class="skill-name">雷撃</div><div class="skill-cd" id="t-cd-3"></div></div>
+        <div class="skill-btn locked rebirth-skill" id="t-skill-4" style="display:none"><span class="skill-icon">🛡️</span><div class="skill-name">バリア</div><div class="skill-cd" id="t-cd-4"></div></div>
+        <div class="skill-btn locked rebirth-skill" id="t-skill-5" style="display:none"><span class="skill-icon">🌊</span><div class="skill-name">超音波</div><div class="skill-cd" id="t-cd-5"></div></div>
+        <div class="skill-btn locked rebirth-skill" id="t-skill-6" style="display:none"><span class="skill-icon">🌀</span><div class="skill-name">爪斬撃</div><div class="skill-cd" id="t-cd-6"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const arena=document.getElementById('arena'),dogCanvas=document.getElementById('dog-canvas'),ctx=dogCanvas.getContext('2d');
+const xpBarEl=document.getElementById('xp-bar'),xpLabelEl=document.getElementById('xp-label');
+const sLevel=document.getElementById('s-level'),sBones=document.getElementById('s-bones'),sHp=document.getElementById('s-hp'),sScore=document.getElementById('s-score');
+const msgEl=document.getElementById('msg'),dogBadge=document.getElementById('dog-name-badge'),stageBadgeEl=document.getElementById('stage-badge');
+const skillOverlay=document.getElementById('skill-overlay'),stageTrans=document.getElementById('stage-transition');
+const stageTransText=document.getElementById('stage-transition-text'),stageTransSub=document.getElementById('stage-transition-sub');
+const bonusBarWrap=document.getElementById('bonus-bar-wrap'),bonusBar=document.getElementById('bonus-bar'),bonusLabelEl=document.getElementById('bonus-label');
+const bossRow=document.getElementById('boss-row'),bossBarEl=document.getElementById('boss-bar');
+const clearOverlay=document.getElementById('clear-overlay'),clearSub=document.getElementById('clear-sub');
+const rebirthBadge=document.getElementById('rebirth-badge');
+
+// ── Stages ────────────────────────────────────────────────
+const STAGES=[
+  {id:'forest', name:'🌲 森',    minLv:1,  isBoss:false,
+   enemy:'🐻',  enemyName:'クマ',         item:'🦴', itemName:'骨',    drop:'💊',dropName:'回復薬',
+   badgeBg:'#e1f5ee',badgeColor:'#1D9E75',
+   decoPos:[{e:'🌲',x:2,y:76},{e:'🌳',x:80,y:72},{e:'🌲',x:88,y:68},{e:'🌿',x:38,y:86},{e:'🍄',x:58,y:82},{e:'🦋',x:48,y:8}]},
+  {id:'savanna',name:'🌅 サバンナ',minLv:10, isBoss:false,
+   enemy:'🦁',  enemyName:'ライオン',      item:'🍇', itemName:'木の実', drop:'🍖',dropName:'肉',
+   badgeBg:'#fff3e0',badgeColor:'#e67e00',
+   decoPos:[{e:'🌴',x:2,y:72},{e:'🌵',x:84,y:74},{e:'🌴',x:77,y:68},{e:'🦒',x:40,y:70},{e:'☀️',x:87,y:4},{e:'🌾',x:55,y:84}]},
+  {id:'arctic', name:'❄️ 北極',  minLv:15, isBoss:false,
+   enemy:'🐻‍❄️',enemyName:'ホッキョクグマ',item:'🐟', itemName:'魚',    drop:'🧊',dropName:'氷のエキス',
+   badgeBg:'#e0f4ff',badgeColor:'#1a7ac4',
+   decoPos:[{e:'🧊',x:3,y:78},{e:'🏔️',x:75,y:70},{e:'🧊',x:85,y:80},{e:'🐧',x:46,y:76},{e:'⛄',x:18,y:74},{e:'❄️',x:62,y:6}]},
+  {id:'space',  name:'🚀 宇宙',  minLv:50, isBoss:true,
+   enemy:'🐉',  enemyName:'ドラゴン',      item:'⭐', itemName:'星',    drop:'💫',dropName:'魔法エキス',
+   badgeBg:'#1a0050',badgeColor:'#aac8ff',
+   decoPos:[{e:'🪐',x:10,y:12},{e:'🌙',x:80,y:8},{e:'🛸',x:50,y:16},{e:'💫',x:30,y:60},{e:'🌟',x:70,y:50}]},
+];
+let currentStage=STAGES[0],snowflakes=[],starParticles=[];
+function getStage(lv){let s=STAGES[0];for(const st of STAGES)if(lv>=st.minLv)s=st;return s;}
+
+function clearSnow(){snowflakes.forEach(s=>s.remove());snowflakes=[];}
+function startSnow(){clearSnow();for(let i=0;i<18;i++){const el=document.createElement('div');el.className='snowflake';el.textContent='❄';el.style.left=Math.random()*96+'%';el.style.top='-20px';el.style.animationDuration=(3+Math.random()*4)+'s';el.style.animationDelay=(Math.random()*5)+'s';el.style.fontSize=(8+Math.random()*10)+'px';arena.appendChild(el);snowflakes.push(el);}}
+
+function clearStars(){starParticles.forEach(s=>s.remove());starParticles=[];}
+function startStars(){clearStars();for(let i=0;i<20;i++){const el=document.createElement('div');el.className='star-particle';el.textContent='✦';el.style.left=Math.random()*96+'%';el.style.top='-10px';el.style.animationDuration=(4+Math.random()*6)+'s';el.style.animationDelay=(Math.random()*8)+'s';el.style.fontSize=(6+Math.random()*8)+'px';el.style.color=['#aaf','#ffd','#faf','#aff'][Math.floor(Math.random()*4)];arena.appendChild(el);starParticles.push(el);}}
+
+function applyStage(stage){
+  arena.className='stage-'+stage.id+(bonusActive?' bonus':bossActive?' boss-fight':'');
+  stageBadgeEl.textContent=stage.name;stageBadgeEl.style.background=stage.badgeBg;stageBadgeEl.style.color=stage.badgeColor;
+  arena.querySelectorAll('.deco').forEach(d=>d.remove());
+  stage.decoPos.forEach(d=>{const el=document.createElement('div');el.className='deco';el.textContent=d.e;el.style.left=d.x+'%';el.style.bottom=(100-d.y)+'%';arena.appendChild(el);});
+  if(stage.id==='arctic')startSnow();else clearSnow();
+  if(stage.id==='space')startStars();else clearStars();
+}
+function transitionToStage(stage,cb){
+  stageTransText.textContent=stage.name+' へ！';
+  stageTransSub.textContent=(stage.isBoss?'⚠️ ボス: '+stage.enemy+' '+stage.enemyName:'アイテム: '+stage.item+' '+stage.itemName+'　敵: '+stage.enemy+' '+stage.enemyName);
+  stageTrans.classList.add('visible');
+  setTimeout(()=>{applyStage(stage);currentStage=stage;if(cb)cb();setTimeout(()=>stageTrans.classList.remove('visible'),700);},900);
+}
+
+// ── Rebirth system ────────────────────────────────────────
+let rebirthCount=0;
+const REBIRTH_SKILLS=[
+  {idx:3,name:'雷撃',icon:'⚡',key:'v',unlockRebirth:1,cd:200,dur:0,desc:'全敵に雷ダメージ'},
+  {idx:4,name:'バリア',icon:'🛡️',key:'b',unlockRebirth:2,cd:360,dur:180,desc:'一定時間ダメージ無効'},
+  {idx:5,name:'超音波',icon:'🌊',key:'n',unlockRebirth:3,cd:280,dur:0,desc:'全敵を吹き飛ばす'},
+  {idx:6,name:'爪斬撃',icon:'🌀',key:'m',unlockRebirth:4,cd:320,dur:0,desc:'向いた方向の敵を全滅'},
+];
+let barrierActive=0;
+
+function applyRebirthUI(){
+  rebirthBadge.textContent=rebirthCount>0?'✨ リボーン'+rebirthCount+'回 — 特別なスキルが使える！':'';
+  REBIRTH_SKILLS.forEach(rs=>{
+    const btn=document.getElementById('skill-'+rs.idx);
+    const tbtn=document.getElementById('t-skill-'+rs.idx);
+    if(rebirthCount>=rs.unlockRebirth){
+      if(btn){btn.style.display='';btn.classList.remove('locked');}
+      if(tbtn){tbtn.style.display='';tbtn.classList.remove('locked');}
+    }else{
+      if(btn)btn.style.display='none';
+      if(tbtn)tbtn.style.display='none';
+    }
+  });
+}
+
+// ── Evolution ─────────────────────────────────────────────
+const EVOLUTIONS=[
+  {minLv:1, name:'柴犬',     icon:'🐕',body:'#C97E3A',dark:'#8B4513',belly:'#E8A96A',nose:'#222',eye:'#333'},
+  {minLv:4, name:'ゴールデン',icon:'🦮',body:'#D4A030',dark:'#A07820',belly:'#F5CC70',nose:'#333',eye:'#333'},
+  {minLv:7, name:'ハスキー', icon:'🐕‍🦺',body:'#607880',dark:'#2A3A44',belly:'#D8E8EC',nose:'#111',eye:'#1a90d0'},
+  {minLv:10,name:'狼犬',     icon:'🐺',body:'#4a5860',dark:'#20303a',belly:'#7a9aaa',nose:'#111',eye:'#c04010'},
+  {minLv:15,name:'北極犬',   icon:'🐕',body:'#ddeef8',dark:'#88aac8',belly:'#ffffff',nose:'#336688',eye:'#44aaff'},
+  {minLv:50,name:'宇宙犬',   icon:'🐕',body:'#8844cc',dark:'#441088',belly:'#ddaaff',nose:'#220066',eye:'#ffdd00'},
+];
+function getEvo(lv){let e=EVOLUTIONS[0];for(const v of EVOLUTIONS)if(lv>=v.minLv)e=v;return e;}
+
+const LV_NAMES=['子犬','見習い','骨ハンター','骨マスター','勇者犬','猛者犬','伝説犬','超犬','神犬','犬王','氷の勇者','氷の王','北極の番人','極地の主','北極犬王','星の旅人','宇宙探検家','銀河の勇者','星座の主','宇宙の番人'];
+function lvName(lv){return LV_NAMES[Math.min(lv-1,LV_NAMES.length-1)];}
+
+// ── Constants ─────────────────────────────────────────────
+const BASE_SPEED=5,ITEM_HIT=54,ITEM_DELAY=90;
+const BONUS_CHANCE=0.4,BONUS_FRAMES_MAX=600,BONUS_ITEM_INTV=38;
+const RESPAWN_INTERVAL=300;
+const BOSS_MAX_HP=120;
+
+// ── Skills (all) ──────────────────────────────────────────
+const ALL_SKILLS=[
+  {idx:0,name:'噛みつき',icon:'🦷',key:'z',unlockLv:3, cd:180,dur:0},
+  {idx:1,name:'突進',    icon:'💨',key:'x',unlockLv:6, cd:240,dur:45},
+  {idx:2,name:'威嚇',    icon:'😤',key:'c',unlockLv:9, cd:300,dur:120},
+  {idx:3,name:'雷撃',    icon:'⚡',key:'v',unlockLv:1, cd:200,dur:0,   rebirthRequired:1},
+  {idx:4,name:'バリア',  icon:'🛡️',key:'b',unlockLv:1, cd:360,dur:180, rebirthRequired:2},
+  {idx:5,name:'超音波',  icon:'🌊',key:'n',unlockLv:1, cd:280,dur:0,   rebirthRequired:3},
+  {idx:6,name:'爪斬撃',  icon:'🌀',key:'m',unlockLv:1, cd:320,dur:0,   rebirthRequired:4},
+];
+
+// ── State ─────────────────────────────────────────────────
+let dog,items,itemQueue,drops,enemies,gameOver,animId,isMoving;
+let walkTick=0,walkPhase=0;
+let skillCDs=[0,0,0,0,0,0,0],rushFrames=0;
+let itemId=0,dropId=0;
+let bonusActive=false,bonusFrames=0,bonusItemTick=0;
+let bossActive=false,bossHp=0;
+let waitingRespawn=false,respawnTick=0;
+const keys={up:false,down:false,left:false,right:false};
+
+function rand(a,b){return Math.random()*(b-a)+a;}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function getSize(){return{W:arena.clientWidth||380,H:arena.clientHeight||280};}
+function showMsg(t){msgEl.textContent=t;clearTimeout(msgEl._t);msgEl._t=setTimeout(()=>msgEl.textContent='',2800);}
+function normalEnemyCap(){return Math.min(Math.floor(dog.level/2)+1,5);}
+
+// ── Draw dogs ─────────────────────────────────────────────
+function drawDog(facingLeft,moving,dead,ev,evoIdx){
+  ctx.clearRect(0,0,64,56);
+  if(dead){ctx.font='40px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('😵',32,30);return;}
+  if(rushFrames>0){ctx.fillStyle='rgba(255,200,0,0.12)';ctx.fillRect(0,0,64,56);}
+  if(barrierActive>0){ctx.strokeStyle='rgba(100,180,255,0.7)';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(32,28,30,24,0,0,Math.PI*2);ctx.stroke();}
+  ctx.save();
+  if(facingLeft){ctx.translate(64,0);ctx.scale(-1,1);}
+  const bob=(moving&&walkPhase===1)?1:0;
+  const swing=moving?(walkPhase===0?3:walkPhase===1?0:-3):0;
+  const tw=moving?(walkPhase<2?-4:4):0;
+  if(evoIdx===0)drawShiba(ev,bob,swing,tw);
+  else if(evoIdx===1)drawGolden(ev,bob,swing,tw);
+  else if(evoIdx===2)drawHusky(ev,bob,swing,tw);
+  else if(evoIdx===3)drawWolf(ev,bob,swing,tw);
+  else if(evoIdx===4)drawArctic(ev,bob,swing,tw);
+  else drawCosmo(ev,bob,swing,tw);
+  ctx.restore();
+}
+
+function drawShiba(ev,bob,swing,tw){
+  const bY=18+bob;
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(8,bY+3+tw,4,3,-0.6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(28,bY+6,13,8,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(29,bY+10,8,4,0.1,0,Math.PI*2);ctx.fill();
+  [{x:17,p:swing},{x:23,p:-swing},{x:33,p:swing},{x:39,p:-swing}].forEach(l=>{ctx.fillStyle=ev.dark;ctx.beginPath();ctx.roundRect(l.x-3,bY+11,5,8+Math.abs(l.p)*0.2,2);ctx.fill();});
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(42,bY+1,9,8,0.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.moveTo(37,bY-4);ctx.lineTo(33,bY-13);ctx.lineTo(41,bY-5);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(43,bY-5);ctx.lineTo(46,bY-13);ctx.lineTo(49,bY-4);ctx.closePath();ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(50,bY+3,5,3.5,0.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.nose;ctx.beginPath();ctx.ellipse(53,bY+1,2,1.5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.eye;ctx.beginPath();ctx.arc(45,bY-2,2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(46,bY-3,0.8,0,Math.PI*2);ctx.fill();
+}
+function drawGolden(ev,bob,swing,tw){
+  const bY=16+bob;
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(7,bY+1+tw*1.2,7,5,-0.3,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(5,bY-3+tw,5,4,-0.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(28,bY+6,16,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(30,bY+11,10,5,0.1,0,Math.PI*2);ctx.fill();
+  [{x:16,p:swing},{x:23,p:-swing},{x:33,p:swing},{x:40,p:-swing}].forEach(l=>{ctx.fillStyle=ev.dark;ctx.beginPath();ctx.roundRect(l.x-3,bY+13,6,9+Math.abs(l.p)*0.3,2);ctx.fill();});
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(44,bY+1,11,10,0.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.ellipse(37,bY+5,5,9,0.3,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(51,bY+5,5,9,-0.3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(52,bY+4,5,4,0.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.nose;ctx.beginPath();ctx.ellipse(55,bY+2,2.5,2,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.eye;ctx.beginPath();ctx.arc(47,bY-2,2.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(48,bY-3,1,0,Math.PI*2);ctx.fill();
+}
+function drawHusky(ev,bob,swing,tw){
+  const bY=15+bob;
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(9,bY-2+tw*0.5,5,8,0.3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(9,bY-3+tw*0.5,3,5,0.3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(28,bY+5,14,9,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(29,bY+9,7,4,0,0,Math.PI*2);ctx.fill();
+  [{x:16,p:swing},{x:23,p:-swing},{x:33,p:swing},{x:40,p:-swing}].forEach(l=>{ctx.fillStyle=ev.dark;ctx.beginPath();ctx.roundRect(l.x-3,bY+11,5,11+Math.abs(l.p)*0.3,2);ctx.fill();});
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(44,bY,10,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(46,bY+2,6,6,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.moveTo(37,bY-3);ctx.lineTo(34,bY-16);ctx.lineTo(41,bY-3);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(45,bY-5);ctx.lineTo(49,bY-16);ctx.lineTo(53,bY-3);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#c88898';ctx.beginPath();ctx.moveTo(38,bY-5);ctx.lineTo(36,bY-13);ctx.lineTo(40,bY-5);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(46,bY-6);ctx.lineTo(49,bY-13);ctx.lineTo(52,bY-5);ctx.closePath();ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(52,bY+3,5,4,0.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.nose;ctx.beginPath();ctx.ellipse(55,bY+1,2.5,2,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.eye;ctx.beginPath();ctx.arc(46,bY-3,2.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(47,bY-4,1,0,Math.PI*2);ctx.fill();
+}
+function drawWolf(ev,bob,swing,tw){
+  const bY=14+bob;
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(7,bY+8+tw*0.5,4,3,-0.2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(27,bY+5,15,8,-0.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(28,bY+9,7,4,0,0,Math.PI*2);ctx.fill();
+  [{x:15,p:swing},{x:22,p:-swing},{x:32,p:swing},{x:39,p:-swing}].forEach(l=>{ctx.fillStyle=ev.dark;ctx.beginPath();ctx.roundRect(l.x-2,bY+10,5,13+Math.abs(l.p)*0.4,2);ctx.fill();});
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.moveTo(36,bY+4);ctx.lineTo(44,bY-6);ctx.lineTo(56,bY-2);ctx.lineTo(57,bY+5);ctx.lineTo(44,bY+8);ctx.closePath();ctx.fill();
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.moveTo(40,bY-5);ctx.lineTo(38,bY-17);ctx.lineTo(45,bY-5);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(49,bY-4);ctx.lineTo(53,bY-17);ctx.lineTo(57,bY-4);ctx.closePath();ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(56,bY+3,6,3.5,0.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.nose;ctx.beginPath();ctx.ellipse(60,bY+1,2.5,2,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.eye;ctx.beginPath();ctx.arc(48,bY-1,2.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,200,180,0.8)';ctx.beginPath();ctx.arc(49,bY-2,1,0,Math.PI*2);ctx.fill();
+}
+function drawArctic(ev,bob,swing,tw){
+  const bY=16+bob;
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.ellipse(8,bY+3+tw,8,6,-0.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(8,bY+3+tw,6,4,-0.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.ellipse(28,bY+6,19,13,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(28,bY+6,17,11,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(30,bY+10,10,6,0.1,0,Math.PI*2);ctx.fill();
+  [{x:16,p:swing},{x:24,p:-swing},{x:34,p:swing},{x:42,p:-swing}].forEach(l=>{ctx.fillStyle=ev.dark;ctx.beginPath();ctx.roundRect(l.x-4,bY+14,8,8+Math.abs(l.p)*0.2,3);ctx.fill();ctx.fillStyle=ev.body;ctx.beginPath();ctx.roundRect(l.x-3,bY+13,7,7,3);ctx.fill();});
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.ellipse(44,bY+1,14,13,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(44,bY+1,12,11,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.arc(36,bY-9,6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(51,bY-9,6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#c8e8f8';ctx.beginPath();ctx.arc(36,bY-9,3.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(51,bY-9,3.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(53,bY+4,6,5,0.05,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.nose;ctx.beginPath();ctx.ellipse(57,bY+2,3,2.5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.eye;ctx.beginPath();ctx.arc(47,bY-2,3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(48,bY-3,1.2,0,Math.PI*2);ctx.fill();
+}
+// 宇宙犬: sleek, helmet-like head, glowing eyes, star-print body
+function drawCosmo(ev,bob,swing,tw){
+  const bY=15+bob;
+  // glowing tail
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(7,bY+2+tw,6,4,-0.3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(200,150,255,0.5)';ctx.beginPath();ctx.ellipse(7,bY+2+tw,9,6,-0.3,0,Math.PI*2);ctx.fill();
+  // body
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(28,bY+5,16,10,0,0,Math.PI*2);ctx.fill();
+  // star pattern on body
+  ctx.fillStyle='rgba(255,220,80,0.5)';
+  [[22,bY+4],[30,bY+8],[36,bY+3]].forEach(([sx,sy])=>{ctx.beginPath();ctx.arc(sx,sy,2,0,Math.PI*2);ctx.fill();});
+  // belly glow
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(30,bY+9,8,5,0,0,Math.PI*2);ctx.fill();
+  // legs
+  [{x:16,p:swing},{x:23,p:-swing},{x:33,p:swing},{x:40,p:-swing}].forEach(l=>{ctx.fillStyle=ev.dark;ctx.beginPath();ctx.roundRect(l.x-3,bY+12,6,10+Math.abs(l.p)*0.3,3);ctx.fill();ctx.fillStyle=ev.belly;ctx.beginPath();ctx.roundRect(l.x-2,bY+18,4,4,2);ctx.fill();});
+  // helmet-like head
+  ctx.fillStyle=ev.dark;ctx.beginPath();ctx.ellipse(44,bY,13,12,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.body;ctx.beginPath();ctx.ellipse(44,bY,11,10,0,0,Math.PI*2);ctx.fill();
+  // visor
+  ctx.fillStyle='rgba(100,200,255,0.35)';ctx.beginPath();ctx.ellipse(46,bY+1,8,7,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(100,200,255,0.8)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(46,bY+1,8,7,0,0,Math.PI*2);ctx.stroke();
+  // antenna
+  ctx.strokeStyle=ev.belly;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(44,bY-10);ctx.lineTo(44,bY-18);ctx.stroke();
+  ctx.fillStyle='#ffdd00';ctx.beginPath();ctx.arc(44,bY-19,2.5,0,Math.PI*2);ctx.fill();
+  // glowing eyes
+  ctx.fillStyle=ev.eye;ctx.beginPath();ctx.arc(43,bY-2,3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,240,100,0.9)';ctx.beginPath();ctx.arc(43,bY-2,1.5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(44,bY-3,0.8,0,Math.PI*2);ctx.fill();
+  // snout
+  ctx.fillStyle=ev.belly;ctx.beginPath();ctx.ellipse(53,bY+4,5,4,0.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=ev.nose;ctx.beginPath();ctx.ellipse(56,bY+2,2,1.5,0,0,Math.PI*2);ctx.fill();
+}
+
+// ── Boss (Dragon) canvas drawing ───────────────────────────
+function drawDragon(el,frame){
+  // We use emoji + animated CSS for the boss
+  const breathFrame=frame%60<30;
+  el.textContent=breathFrame?'🐉':'🔥';
+  el.style.fontSize=breathFrame?'48px':'40px';
+}
+
+// ── Items ─────────────────────────────────────────────────
+function makeItem(){
+  const{W,H}=getSize();
+  const el=document.createElement('div');el.className='item-el spawning';el.textContent=currentStage.item;
+  const ix=rand(10,W-46),iy=rand(10,H-46);el.style.left=ix+'px';el.style.top=iy+'px';
+  arena.appendChild(el);setTimeout(()=>el.classList.remove('spawning'),400);
+  return{id:itemId++,el,cx:ix+13,cy:iy+13,alive:true};
+}
+function spawnItems(n){for(let i=0;i<n;i++)items.push(makeItem());}
+function scheduleItem(){itemQueue.push(ITEM_DELAY);}
+
+function makeDrop(x,y){
+  const el=document.createElement('div');el.className='drop-el';el.textContent=currentStage.drop;
+  el.style.left=(x-12)+'px';el.style.top=(y-12)+'px';arena.appendChild(el);
+  return{id:dropId++,el,cx:x,cy:y,alive:true};
+}
+
+// ── Enemies / Boss ────────────────────────────────────────
+let dragonFrame=0;
+function spawnBoss(){
+  bossActive=true; bossHp=BOSS_MAX_HP;
+  bossRow.style.display='flex';
+  bossBarEl.style.width='100%';
+  arena.classList.add('boss-fight');
+  showMsg('⚠️ ドラゴンが現れた！全力で戦え！');
+  const el=document.createElement('div');
+  el.className='enemy-el';el.style.fontSize='48px';el.style.zIndex='5';el.textContent='🐉';
+  const{W,H}=getSize();
+  el.style.left=(W/2-24)+'px';el.style.top='30px';
+  arena.appendChild(el);
+  enemies.push({cx:W/2,cy:60,el,speed:1.2,inv:0,frozen:0,hp:BOSS_MAX_HP,isBoss:true});
+}
+
+function spawnEnemy(){
+  if(currentStage.isBoss){spawnBoss();return;}
+  const{W,H}=getSize();
+  const el=document.createElement('div');el.className='enemy-el';el.style.fontSize='30px';el.textContent=currentStage.enemy;
+  const s=Math.floor(rand(0,4));let x,y;
+  if(s===0){x=rand(0,W);y=-35;}else if(s===1){x=W+10;y=rand(0,H);}
+  else if(s===2){x=rand(0,W);y=H+10;}else{x=-35;y=rand(0,H);}
+  el.style.left=x+'px';el.style.top=y+'px';arena.appendChild(el);
+  enemies.push({cx:x+15,cy:y+15,el,speed:0.48+dog.level*0.12,inv:0,frozen:0,hp:2+dog.level,isBoss:false});
+}
+
+function spawnFx(x,y,emoji){const el=document.createElement('div');el.className='hit-fx';el.textContent=emoji;el.style.left=x+'px';el.style.top=y+'px';arena.appendChild(el);setTimeout(()=>el.remove(),600);}
+function flashOverlay(color){skillOverlay.style.background=color;skillOverlay.style.opacity='1';setTimeout(()=>skillOverlay.style.opacity='0',200);}
+
+function onAllEnemiesCleared(){
+  if(currentStage.isBoss)return;
+  if(Math.random()<BONUS_CHANCE)startBonus();
+  else{waitingRespawn=true;respawnTick=0;showMsg('次の敵が来る…');}
+}
+
+function startBonus(){
+  bonusActive=true;bonusFrames=BONUS_FRAMES_MAX;bonusItemTick=0;
+  bonusBarWrap.style.display='block';bonusLabelEl.style.display='block';bonusBar.style.width='100%';
+  arena.classList.add('bonus');
+  showMsg('🎉 ラッキー！ボーナスタイム！');
+  for(let i=0;i<6;i++)setTimeout(()=>{if(bonusActive)items.push(makeItem());},i*130);
+}
+function endBonus(){
+  bonusActive=false;bonusBarWrap.style.display='none';bonusLabelEl.style.display='none';
+  arena.classList.remove('bonus');
+  items.forEach(it=>it.el.remove());items=[];itemQueue=[];
+  spawnItems(4);waitingRespawn=true;respawnTick=0;showMsg('ボーナス終了！敵が来るよ…');
+}
+
+function killEnemy(idx){
+  const e=enemies[idx];
+  if(e.isBoss){
+    // Dragon defeated!
+    spawnFx(e.cx-30,e.cy-30,'💥');spawnFx(e.cx,e.cy-10,'🔥');spawnFx(e.cx-10,e.cy+10,'✨');
+    e.el.remove();enemies.splice(idx,1);
+    bossActive=false;bossRow.style.display='none';
+    dog.score+=5000;sScore.textContent=dog.score;
+    arena.classList.remove('boss-fight');
+    showClear();
+    return;
+  }
+  spawnFx(e.cx-20,e.cy-20,'💥');drops.push(makeDrop(e.cx,e.cy));
+  e.el.remove();enemies.splice(idx,1);dog.score+=50*dog.level;sScore.textContent=dog.score;
+  if(enemies.length===0&&!bonusActive)onAllEnemiesCleared();
+}
+
+// ── Clear / Rebirth ───────────────────────────────────────
+function showClear(){
+  gameOver=true;cancelAnimationFrame(animId);
+  const newSkills=REBIRTH_SKILLS.filter(rs=>rs.unlockRebirth===rebirthCount+1);
+  let skillText=newSkills.length>0?'\n新スキル解放: '+newSkills.map(s=>s.icon+' '+s.name).join(', '):'';
+  clearSub.innerHTML='スコア: <strong>'+dog.score+'</strong><br>ドラゴンを倒した！伝説の犬！<br>リボーンしてもっと強くなろう！'+skillText.replace('\n','<br>');
+  clearOverlay.classList.add('visible');
+}
+
+function doRebirth(){
+  clearOverlay.classList.remove('visible');
+  rebirthCount++;
+  // Reset game but keep score, increment rebirth
+  const keepScore=dog.score;
+  items.forEach(b=>b.el.remove());drops.forEach(d=>d.el.remove());enemies.forEach(e=>e.el.remove());
+  arena.querySelectorAll('.hit-fx,.deco,.snowflake,.star-particle').forEach(e=>e.remove());
+  items=[];drops=[];enemies=[];itemQueue=[];snowflakes=[];starParticles=[];
+  walkTick=0;walkPhase=0;isMoving=false;skillCDs=[0,0,0,0,0,0,0];rushFrames=0;barrierActive=0;
+  bonusActive=false;bonusFrames=0;bonusItemTick=0;bossActive=false;bossHp=0;waitingRespawn=false;respawnTick=0;
+  dog={x:80,y:110,level:1,bones:0,hp:5,maxHp:5,score:keepScore,xp:0,facingLeft:false};
+  dogCanvas.style.left=dog.x+'px';dogCanvas.style.top=dog.y+'px';
+  sLevel.textContent=1;sBones.textContent=0;sHp.textContent=5;sScore.textContent=dog.score;
+  xpBarEl.style.width='0%';xpLabelEl.textContent='子犬';dogBadge.textContent='🐕 柴犬';
+  bossRow.style.display='none';
+  bonusBarWrap.style.display='none';bonusLabelEl.style.display='none';
+  arena.classList.remove('bonus','boss-fight');
+  msgEl.textContent='リボーン！ もっと強くなって戻ってきた！';
+  gameOver=false;currentStage=STAGES[0];stageTrans.classList.remove('visible');
+  applyStage(STAGES[0]);applyRebirthUI();updateSkillUI();
+  drawDog(false,false,false,EVOLUTIONS[0],0);
+  spawnItems(4);spawnEnemy();gameLoop();
+}
+
+// ── Skills ────────────────────────────────────────────────
+function useSkill(i){
+  if(gameOver)return;
+  const sk=ALL_SKILLS[i];
+  if(!sk)return;
+  if(sk.rebirthRequired&&rebirthCount<sk.rebirthRequired){showMsg(sk.name+' はリボーン'+sk.rebirthRequired+'回で解放！');return;}
+  if(i<3&&dog.level<sk.unlockLv){showMsg(sk.name+' は Lv'+sk.unlockLv+' で解放！');return;}
+  if(skillCDs[i]>0){showMsg(sk.name+' クールダウン中… '+Math.ceil(skillCDs[i]/60)+'s');return;}
+  skillCDs[i]=sk.cd;
+
+  const dogCx=dog.x+32,dogCy=dog.y+28;
+  if(i===0){// 噛みつき — レベルに応じてダメージ増加
+    let near=null,nd=9999;enemies.forEach(e=>{const d=dist({x:dogCx,y:dogCy},{x:e.cx,y:e.cy});if(d<nd){nd=d;near=e;}});
+    if(near&&nd<140){
+      const dmg=near.isBoss?Math.floor(8+dog.level*0.8):Math.floor(5+dog.level*0.5);
+      near.hp-=dmg;spawnFx(near.cx-16,near.cy-20,'💥');
+      if(near.isBoss){bossBarEl.style.width=Math.max(0,near.hp/BOSS_MAX_HP*100)+'%';showMsg('🦷 噛みついた！ドラゴンに '+dmg+' ダメージ！');}
+      const idx=enemies.indexOf(near);if(near.hp<=0&&idx>=0){killEnemy(idx);if(!near.isBoss)showMsg('🦷 噛みつきで倒した！');}
+    }else showMsg('🦷 噛みつき！（届かない…）');
+    flashOverlay('rgba(255,80,0,0.15)');
+  }
+  if(i===1){rushFrames=sk.dur;showMsg('💨 突進！');flashOverlay('rgba(255,220,0,0.2)');}
+  if(i===2){// 威嚇 — 凍結するが攻撃は通る
+    enemies.forEach(e=>{e.frozen=sk.dur;});spawnFx(dogCx-20,dogCy-20,'😤');showMsg('😤 威嚇！敵が凍った！動けない間に攻撃せよ！');flashOverlay('rgba(80,160,255,0.2)');}
+  if(i===3){// 雷撃 — damages all enemies
+    enemies.forEach(e=>{const dmg=e.isBoss?12:5;e.hp-=dmg;spawnFx(e.cx-10,e.cy-10,'⚡');});
+    showMsg('⚡ 雷撃！全ての敵にダメージ！');
+    for(let j=enemies.length-1;j>=0;j--){
+      if(enemies[j].isBoss)bossBarEl.style.width=Math.max(0,enemies[j].hp/BOSS_MAX_HP*100)+'%';
+      if(enemies[j].hp<=0)killEnemy(j);
+    }
+    flashOverlay('rgba(200,220,80,0.3)');
+  }
+  if(i===4){// バリア
+    barrierActive=sk.dur;showMsg('🛡️ バリア！一定時間ダメージ無効！');flashOverlay('rgba(100,180,255,0.3)');}
+  if(i===5){// 超音波 — 全敵を外側に吹き飛ばす
+    const{W,H}=getSize();
+    enemies.forEach(e=>{
+      if(e.isBoss){
+        // ボスは吹き飛ばせないが大ダメージ
+        const dmg=Math.floor(15+dog.level*0.8);e.hp-=dmg;
+        spawnFx(e.cx-16,e.cy-20,'🌊');
+        bossBarEl.style.width=Math.max(0,e.hp/BOSS_MAX_HP*100)+'%';
+        return;
+      }
+      // 犬から外側方向に高速吹き飛ばし
+      const dx=e.cx-dogCx,dy=e.cy-dogCy;
+      const d=Math.hypot(dx,dy)||1;
+      e.cx=Math.max(-60,Math.min(W+60,e.cx+dx/d*300));
+      e.cy=Math.max(-60,Math.min(H+60,e.cy+dy/d*300));
+      e.el.style.left=(e.cx-15)+'px';e.el.style.top=(e.cy-15)+'px';
+      spawnFx(dogCx+dx/d*60,dogCy+dy/d*60,'🌊');
+      e.inv=90;
+    });
+    // ボスHPチェック
+    for(let j=enemies.length-1;j>=0;j--){
+      if(enemies[j].isBoss&&enemies[j].hp<=0)killEnemy(j);
+    }
+    showMsg('🌊 超音波！敵を吹き飛ばした！');
+    flashOverlay('rgba(80,200,255,0.35)');
+  }
+  if(i===6){// 爪斬撃 — 向いている方向の敵を全滅（ボスはHP半分）
+    const{W,H}=getSize();
+    const facingRight=!dog.facingLeft;
+    // 斬撃エフェクト：犬の向いてる方向に扇形を描く
+    const slashX=facingRight?dogCx+30:dogCx-30;
+    for(let sx=0;sx<4;sx++) setTimeout(()=>spawnFx(slashX+(facingRight?sx*20:-sx*20),dogCy-20+sx*10,'⚚'),sx*60);
+    spawnFx(dogCx+(facingRight?10:-10),dogCy-10,'🌀');
+    let killed=0;
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j];
+      // 向いている方向にいる敵のみ対象
+      const inFront=facingRight?(e.cx>dogCx-20):(e.cx<dogCx+20);
+      if(!inFront)continue;
+      if(e.isBoss){
+        // ボスはHP半分に
+        e.hp=Math.floor(e.hp/2);
+        bossBarEl.style.width=Math.max(0,e.hp/BOSS_MAX_HP*100)+'%';
+        spawnFx(e.cx-20,e.cy-20,'⚚');
+        if(e.hp<=0)killEnemy(j);
+        else showMsg('🌀 爪斬撃！ドラゴンのHPを半分に！');
+      }else{
+        spawnFx(e.cx-10,e.cy-15,'⚚');e.el.remove();enemies.splice(j,1);
+        dog.score+=50*dog.level;sScore.textContent=dog.score;killed++;
+      }
+    }
+    if(killed>0)showMsg('🌀 爪斬撃！'+killed+'体を一閃！');
+    else if(!enemies.some(e=>e.isBoss))showMsg('🌀 爪斬撃！（前方に敵がいない…）');
+    flashOverlay('rgba(200,100,255,0.3)');
+  }
+  updateSkillUI();
+}
+
+function updateSkillUI(){
+  ALL_SKILLS.forEach((sk,i)=>{
+    // PC buttons
+    const btn=document.getElementById('skill-'+i);
+    const cdEl=document.getElementById('cd-'+i);
+    // Touch buttons
+    const tbtn=document.getElementById('t-skill-'+i);
+    const tcdEl=document.getElementById('t-cd-'+i);
+
+    const locked=(sk.rebirthRequired&&rebirthCount<sk.rebirthRequired)||(i<3&&dog.level<sk.unlockLv);
+    const cooling=!locked&&skillCDs[i]>0;
+    const cls='skill-btn'+(i>=3?' rebirth-skill':'')+(locked?' locked':cooling?' cooling':'');
+    const cdTxt=locked?(sk.rebirthRequired?'リボーン'+sk.rebirthRequired+'回':'Lv'+sk.unlockLv):cooling?Math.ceil(skillCDs[i]/60)+'s':'OK ✓';
+
+    if(btn){btn.className=cls;if(cdEl)cdEl.textContent=cdTxt;}
+    if(tbtn){tbtn.className=cls;if(tcdEl)tcdEl.textContent=cdTxt;}
+  });
+}
+
+// ── XP / Level ────────────────────────────────────────────
+function updateXpBar(){
+  xpBarEl.style.width=Math.min(100,Math.round(dog.xp/5*100))+'%';
+  xpLabelEl.textContent=lvName(dog.level);
+}
+function levelUp(){
+  const prevEvo=getEvo(dog.level),prevStage=getStage(dog.level);
+  dog.level++;dog.xp=0;dog.maxHp=3+dog.level*2;dog.hp=dog.maxHp;
+  sLevel.textContent=dog.level;sHp.textContent=dog.hp;xpBarEl.style.width='0%';
+  const ev=getEvo(dog.level),newStage=getStage(dog.level);
+  if(ev.name!==prevEvo.name){dogBadge.textContent=ev.icon+' '+ev.name;showMsg('🎉 進化！ '+ev.name+' になった！');}
+  else showMsg('⬆️ Lv'+dog.level+' — '+lvName(dog.level));
+  if(newStage.id!==prevStage.id){
+    // Clear all enemies and items before stage transition
+    enemies.forEach(e=>e.el.remove());enemies=[];bossActive=false;bossHp=0;bossRow.style.display='none';arena.classList.remove('boss-fight');
+    setTimeout(()=>{items.forEach(it=>it.el.remove());items=[];itemQueue=[];},200);
+    transitionToStage(newStage,()=>{
+      setTimeout(()=>{
+        spawnItems(newStage.isBoss?0:4);
+        if(newStage.isBoss)spawnBoss();else spawnEnemy();
+      },200);
+    });
+  }
+  updateXpBar();updateSkillUI();
+  if(!currentStage.isBoss&&!bossActive&&enemies.length<normalEnemyCap())spawnEnemy();
+}
+
+// ── Game loop ─────────────────────────────────────────────
+let frameCount=0;
+function gameLoop(){
+  if(gameOver)return;
+  frameCount++;
+  for(let i=0;i<5;i++)if(skillCDs[i]>0)skillCDs[i]--;
+  if(rushFrames>0)rushFrames--;
+  if(barrierActive>0)barrierActive--;
+  updateSkillUI();
+
+  if(bonusActive){bonusFrames--;bonusBar.style.width=Math.round((bonusFrames/BONUS_FRAMES_MAX)*100)+'%';bonusItemTick++;if(bonusItemTick>=BONUS_ITEM_INTV){bonusItemTick=0;items.push(makeItem());}if(bonusFrames<=0)endBonus();}
+  if(waitingRespawn&&!bonusActive&&!currentStage.isBoss){respawnTick++;if(respawnTick>=RESPAWN_INTERVAL){respawnTick=0;spawnEnemy();if(enemies.length>=normalEnemyCap())waitingRespawn=false;}}
+
+  itemQueue=itemQueue.map(t=>t-1);
+  const ready=itemQueue.filter(t=>t<=0).length;itemQueue=itemQueue.filter(t=>t>0);
+  for(let i=0;i<ready;i++)items.push(makeItem());
+
+  const spd=rushFrames>0?BASE_SPEED*2.6:BASE_SPEED;
+  let dx=0,dy=0;
+  if(keys.up)dy=-spd;if(keys.down)dy=spd;if(keys.left)dx=-spd;if(keys.right)dx=spd;
+  if(dx!==0&&dy!==0){dx*=0.707;dy*=0.707;}
+  isMoving=dx!==0||dy!==0;
+  if(dx<0)dog.facingLeft=true;else if(dx>0)dog.facingLeft=false;
+  const{W,H}=getSize();
+  dog.x=Math.max(0,Math.min(W-64,dog.x+dx));dog.y=Math.max(0,Math.min(H-56,dog.y+dy));
+  dogCanvas.style.left=dog.x+'px';dogCanvas.style.top=dog.y+'px';
+  if(isMoving){walkTick++;if(walkTick>=6){walkTick=0;walkPhase=(walkPhase+1)%3;}}else{walkPhase=0;walkTick=0;}
+  const ev=getEvo(dog.level),evoIdx=EVOLUTIONS.indexOf(ev);
+  drawDog(dog.facingLeft,isMoving,false,ev,evoIdx);
+
+  const dogCx=dog.x+32,dogCy=dog.y+28;
+
+  for(let i=0;i<items.length;i++){
+    const b=items[i];if(!b.alive)continue;
+    if(dist({x:dogCx,y:dogCy},{x:b.cx,y:b.cy})<ITEM_HIT){
+      b.alive=false;b.el.remove();dog.bones++;dog.xp++;dog.score+=10*dog.level;
+      sBones.textContent=dog.bones;sScore.textContent=dog.score;updateXpBar();
+      if(dog.xp>=5)levelUp();
+      if(!bonusActive)scheduleItem();
+    }
+  }
+  items=items.filter(b=>b.alive);
+  if(!bonusActive&&!currentStage.isBoss){const onField=items.length+itemQueue.length;if(onField<4)for(let i=0;i<4-onField;i++)items.push(makeItem());}
+
+  for(let i=drops.length-1;i>=0;i--){
+    const d=drops[i];if(!d.alive)continue;
+    if(dist({x:dogCx,y:dogCy},{x:d.cx,y:d.cy})<46){
+      d.alive=false;d.el.remove();const healed=Math.min(2,dog.maxHp-dog.hp);dog.hp=Math.min(dog.maxHp,dog.hp+2);sHp.textContent=dog.hp;
+      spawnFx(d.cx-16,d.cy-20,'❤️');showMsg(currentStage.dropName+'を拾った！ HP+'+(healed>0?healed:'(満タン)'));drops.splice(i,1);
+    }
+  }
+  drops=drops.filter(d=>d.alive);
+
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i];
+    if(e.frozen>0){
+      e.frozen--;e.el.style.opacity='0.5';
+      // 凍結中でも突進ダメージは当たる
+      if(rushFrames>0&&dist({x:dogCx,y:dogCy},{x:e.cx,y:e.cy})<46){
+        const rdmg=e.isBoss?Math.floor(6+dog.level*0.6):9999;
+        if(e.isBoss){e.hp-=rdmg;bossBarEl.style.width=Math.max(0,e.hp/BOSS_MAX_HP*100)+'%';spawnFx(e.cx-20,e.cy-20,'💥');if(e.hp<=0){killEnemy(i);continue;}}
+        else{killEnemy(i);continue;}
+      }
+      continue;
+    }
+    e.el.style.opacity='1';
+
+    // Boss special movement: figure-8 + charge
+    if(e.isBoss){
+      dragonFrame++;drawDragon(e.el,dragonFrame);
+      const t=dragonFrame*0.02;
+      const{W,H}=getSize();
+      // Wander in top half + occasional charge at player
+      const chargeCycle=Math.floor(dragonFrame/180)%2===1;
+      if(chargeCycle){const ddx=dogCx-e.cx,ddy=dogCy-e.cy,d=Math.hypot(ddx,ddy)||1;e.cx+=ddx/d*2.5;e.cy+=ddy/d*2.5;}
+      else{e.cx=W/2+Math.sin(t)*W*0.35;e.cy=70+Math.sin(t*1.3)*50;}
+      e.el.style.left=(e.cx-24)+'px';e.el.style.top=(e.cy-24)+'px';
+      if(e.inv>0){e.inv--;continue;}
+      if(dist({x:dogCx,y:dogCy},{x:e.cx,y:e.cy})<44){
+        if(barrierActive>0){showMsg('🛡️ バリアがダメージを防いだ！');e.inv=60;}
+        else{dog.hp-=2;sHp.textContent=dog.hp;e.inv=80;spawnFx(dogCx-20,dogCy-28,'💥');showMsg('🐉 ドラゴンの攻撃！ HP: '+dog.hp+'/'+dog.maxHp);if(dog.hp<=0){endGameOver();return;}}
+      }
+      continue;
+    }
+
+    const ddx=dogCx-e.cx,ddy=dogCy-e.cy,d=Math.hypot(ddx,ddy)||1;
+    e.cx+=ddx/d*e.speed;e.cy+=ddy/d*e.speed;
+    e.el.style.left=(e.cx-15)+'px';e.el.style.top=(e.cy-15)+'px';
+    if(rushFrames>0&&dist({x:dogCx,y:dogCy},{x:e.cx,y:e.cy})<46){
+      const rdmg=e.isBoss?Math.floor(6+dog.level*0.6):9999;
+      if(e.isBoss){e.hp-=rdmg;bossBarEl.style.width=Math.max(0,e.hp/BOSS_MAX_HP*100)+'%';spawnFx(e.cx-20,e.cy-20,'💥');showMsg('💨 突進！ドラゴンに '+rdmg+' ダメージ！');if(e.hp<=0)killEnemy(i);}
+      else{killEnemy(i);showMsg('💨 突進で吹き飛ばした！');}
+      continue;
+    }
+    if(e.inv>0){e.inv--;continue;}
+    if(dist({x:dogCx,y:dogCy},{x:e.cx,y:e.cy})<30){
+      if(barrierActive>0){showMsg('🛡️ バリアがダメージを防いだ！');e.inv=60;}
+      else{dog.hp--;sHp.textContent=dog.hp;e.inv=80;spawnFx(dogCx-20,dogCy-28,'😣');showMsg(currentStage.enemyName+'にやられた！ HP: '+dog.hp+'/'+dog.maxHp);if(dog.hp<=0){endGameOver();return;}}
+    }
+  }
+  animId=requestAnimationFrame(gameLoop);
+}
+
+function endGameOver(){
+  gameOver=true;cancelAnimationFrame(animId);
+  const ev=getEvo(dog.level),evoIdx=EVOLUTIONS.indexOf(ev);drawDog(dog.facingLeft,false,true,ev,evoIdx);
+  msgEl.textContent='ゲームオーバー！スコア: '+dog.score+' 　🔄 リセットで再挑戦！';
+  arena.classList.remove('bonus','boss-fight');bossRow.style.display='none';bonusBarWrap.style.display='none';bonusLabelEl.style.display='none';
+}
+
+function doReset(){
+  clearOverlay.classList.remove('visible');cancelAnimationFrame(animId);
+  items.forEach(b=>b.el.remove());drops.forEach(d=>d.el.remove());enemies.forEach(e=>e.el.remove());
+  arena.querySelectorAll('.hit-fx,.deco,.snowflake,.star-particle').forEach(e=>e.remove());
+  items=[];drops=[];enemies=[];itemQueue=[];snowflakes=[];starParticles=[];
+  walkTick=0;walkPhase=0;isMoving=false;skillCDs=[0,0,0,0,0,0,0];rushFrames=0;barrierActive=0;
+  bonusActive=false;bonusFrames=0;bonusItemTick=0;bossActive=false;bossHp=0;waitingRespawn=false;respawnTick=0;dragonFrame=0;
+  rebirthCount=0;frameCount=0;
+  dog={x:80,y:110,level:1,bones:0,hp:5,maxHp:5,score:0,xp:0,facingLeft:false};
+  dogCanvas.style.left=dog.x+'px';dogCanvas.style.top=dog.y+'px';
+  sLevel.textContent=1;sBones.textContent=0;sHp.textContent=5;sScore.textContent=0;
+  xpBarEl.style.width='0%';xpLabelEl.textContent='子犬';dogBadge.textContent='🐕 柴犬';rebirthBadge.textContent='';
+  bossRow.style.display='none';bonusBarWrap.style.display='none';bonusLabelEl.style.display='none';
+  arena.classList.remove('bonus','boss-fight');msgEl.textContent='矢印キー or 十字キーで移動！アイテムを集めて敵を倒せ！';
+  gameOver=false;currentStage=STAGES[0];stageTrans.classList.remove('visible');
+  document.getElementById('skill-3').style.display='none';document.getElementById('skill-4').style.display='none';document.getElementById('skill-5').style.display='none';document.getElementById('skill-6').style.display='none';
+  document.getElementById('t-skill-3').style.display='none';document.getElementById('t-skill-4').style.display='none';document.getElementById('t-skill-5').style.display='none';document.getElementById('t-skill-6').style.display='none';
+  applyStage(STAGES[0]);applyRebirthUI();updateSkillUI();
+  drawDog(false,false,false,EVOLUTIONS[0],0);spawnItems(4);spawnEnemy();gameLoop();
+}
+
+// ── Input ─────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
+  if(e.key==='ArrowUp')keys.up=true;if(e.key==='ArrowDown')keys.down=true;
+  if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;
+  const k=e.key.toLowerCase();
+  if(k==='z')useSkill(0);if(k==='x')useSkill(1);if(k==='c')useSkill(2);if(k==='v')useSkill(3);if(k==='b')useSkill(4);if(k==='n')useSkill(5);if(k==='m')useSkill(6);
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowUp')keys.up=false;if(e.key==='ArrowDown')keys.down=false;
+  if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;
+});
+// ── Touch detection: show joystick on touch, dpad on PC ───
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+if(isTouch) document.body.classList.add('is-touch');
+
+// ── Dpad (PC用) ────────────────────────────────────────────
+function dpadBind(id,key){
+  const btn=document.getElementById(id);
+  if(!btn)return;
+  btn.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;});
+  btn.addEventListener('pointerup',()=>keys[key]=false);
+  btn.addEventListener('pointerleave',()=>keys[key]=false);
+  btn.addEventListener('pointercancel',()=>keys[key]=false);
+}
+dpadBind('btn-up','up');dpadBind('btn-down','down');dpadBind('btn-left','left');dpadBind('btn-right','right');
+
+// ── Joystick (タッチ用) ────────────────────────────────────
+(function(){
+  const base=document.getElementById('joystick-base');
+  const stick=document.getElementById('joystick-stick');
+  if(!base)return;
+  const DEAD=12;
+  let pid=null;
+
+  function moveStick(cx,cy){
+    const bRect=base.getBoundingClientRect();
+    const R=bRect.width/2;
+    const ox=cx-(bRect.left+R);
+    const oy=cy-(bRect.top+R);
+    const d=Math.hypot(ox,oy);
+    const maxR=R-28;
+    const clamp=Math.min(d,maxR);
+    const angle=Math.atan2(oy,ox);
+    const sx=Math.cos(angle)*clamp;
+    const sy=Math.sin(angle)*clamp;
+    stick.style.transform=`translate(calc(-50% + ${sx}px), calc(-50% + ${sy}px))`;
+    keys.left=ox<-DEAD; keys.right=ox>DEAD;
+    keys.up=oy<-DEAD;   keys.down=oy>DEAD;
+  }
+  function resetStick(){
+    stick.style.transform='translate(-50%,-50%)';
+    keys.up=keys.down=keys.left=keys.right=false;
+    pid=null;
+  }
+  base.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(pid!==null)return;
+    const t=e.changedTouches[0];pid=t.identifier;
+    moveStick(t.clientX,t.clientY);
+  },{passive:false});
+  base.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){if(t.identifier===pid){moveStick(t.clientX,t.clientY);break;}}
+  },{passive:false});
+  base.addEventListener('touchend',e=>{
+    for(const t of e.changedTouches){if(t.identifier===pid){resetStick();break;}}
+  });
+  base.addEventListener('touchcancel',e=>{
+    for(const t of e.changedTouches){if(t.identifier===pid){resetStick();break;}}
+  });
+  // マウスフォールバック（タッチなしPCでジョイスティック使いたい場合）
+  base.addEventListener('mousedown',e=>{
+    e.preventDefault();moveStick(e.clientX,e.clientY);
+    const mm=ev=>moveStick(ev.clientX,ev.clientY);
+    const mu=()=>{resetStick();document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+    document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+  });
+})();
+
+for(let i=0;i<7;i++){
+  const btn=document.getElementById('skill-'+i);
+  if(btn)btn.addEventListener('pointerdown',e=>{e.preventDefault();useSkill(i);});
+  const tbtn=document.getElementById('t-skill-'+i);
+  if(tbtn)tbtn.addEventListener('pointerdown',e=>{e.preventDefault();useSkill(i);});
+}
+document.getElementById('reset-btn').addEventListener('click',doReset);
+document.getElementById('rebirth-btn').addEventListener('click',doRebirth);
+
+// ── Boot ──────────────────────────────────────────────────
+dog={x:80,y:110,level:1,bones:0,hp:5,maxHp:5,score:0,xp:0,facingLeft:false};
+items=[];drops=[];enemies=[];itemQueue=[];snowflakes=[];starParticles=[];
+bonusActive=false;bonusFrames=0;bonusItemTick=0;bossActive=false;bossHp=0;waitingRespawn=false;respawnTick=0;dragonFrame=0;frameCount=0;
+currentStage=STAGES[0];applyStage(STAGES[0]);
+dogCanvas.style.left=dog.x+'px';dogCanvas.style.top=dog.y+'px';
+drawDog(false,false,false,EVOLUTIONS[0],0);
+applyRebirthUI();updateSkillUI();spawnItems(4);spawnEnemy();gameLoop();
+</script>
+</body>
+</html>
